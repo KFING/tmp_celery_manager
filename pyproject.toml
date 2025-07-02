@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "parsermanager"
+version = "0.1.0"
+description = ""
+authors = ["Egor <egormeschenko@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+redis = "^6.2.0"
+celery = "^5.5.3"
+watchdog = "^6.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
