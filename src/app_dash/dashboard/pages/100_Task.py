@@ -35,7 +35,7 @@ async def main(*, log_extra: dict[str, str]) -> None:
             end_of_epoch = datetime(time_period[-1].year, time_period[-1].month, time_period[-1].day)
             await rds.sadd(str(RedisTask.channel_name.value), channel_name)
             await rds.rpush(channel_name, str(start_of_epoch), str(end_of_epoch))
-            st.write(await rds.smembers(str(RedisTask.channel_name.value)))
+            st.write(await rds.lrange(channel_name, 0, -1))
 
         else:
             st.write("WARNING: time period is invalid")

@@ -1,8 +1,7 @@
-import json
+import asyncio
 import logging
 from datetime import datetime
 
-from pydantic import BaseModel
 from redis import Redis
 
 from src.app_celery.main import app
@@ -33,7 +32,7 @@ def serialize_tg_task(channel_name: str) -> TelegramTask | None:
             dt_from=datetime.fromisoformat(tsk[1].decode("utf-8")),
         )
         rds.lrem(channel_name, 1, tsk[0])
-        rds.lrem(channel_name, 1, tsk[0])
+        rds.lrem(channel_name, 1, tsk[1])
         return tg_task
     except InvalidTelegramTask:
         logger.warning('Invalid TelegramTask parameters')
@@ -44,7 +43,7 @@ def create_new_task(tsk: TelegramTask):
     global running_tasks
     global running_channels
 
-    result = parse_api.delay(tsk.channel_name)
+    result = parse_api.delay(tsk.model_dump_json(indent=4))
     running_tasks[result.id] = result
     running_channels[result.id] = tsk.channel_name
 
@@ -52,7 +51,6 @@ def create_new_task(tsk: TelegramTask):
 
 @app.task
 def manager_task():
-
     global running_tasks
     global running_channels
 
@@ -86,8 +84,10 @@ def manager_task():
             channels.remove(str(item))
         if not channels:
             return
-        tsk = serialize_tg_task(channels.pop())
+        channel = channels.pop()
+        tsk = serialize_tg_task(channel)
         if not tsk:
             continue
         result = create_new_task(tsk)
-        logger.debug(f"Running new task: {result.id} :: {channels.pop()}")
+        logger.debug(f"Running new task: {result.id} :: {channel}")
+
