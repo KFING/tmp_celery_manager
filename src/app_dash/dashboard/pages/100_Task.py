@@ -13,6 +13,7 @@ from src.dto.redis_task import RedisTask
 logger = logging.getLogger(__name__)
 
 rds = Redis()
+mdl_name = "src.app_dash.dashboard.pages.100_Task"
 
 async def main(*, log_extra: dict[str, str]) -> None:
     st.set_page_config(
@@ -32,13 +33,15 @@ async def main(*, log_extra: dict[str, str]) -> None:
         if isinstance(time_period, tuple) and len(time_period) == 2:
             start_of_epoch = datetime(time_period[0].year, time_period[0].month, time_period[0].day)
             end_of_epoch = datetime(time_period[-1].year, time_period[-1].month, time_period[-1].day)
-            await rds.sadd(RedisTask.channel_name.value, channel_name)
+            await rds.sadd(str(RedisTask.channel_name.value), channel_name)
             await rds.rpush(channel_name, str(start_of_epoch), str(end_of_epoch))
+            st.write(await rds.smembers(str(RedisTask.channel_name.value)))
+
         else:
             st.write("WARNING: time period is invalid")
             return
 
 
 
-with log.scope(logger, "Telegram_post") as _log_extra:
+with log.scope(logger, mdl_name) as _log_extra:
     asyncio.run(main(log_extra=_log_extra))

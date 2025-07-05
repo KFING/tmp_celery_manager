@@ -8,7 +8,7 @@ from typing import Final
 from pydantic import PostgresDsn, SecretStr
 from pydantic_settings import BaseSettings
 
-ROOT_PATH = Path(__file__).parent.parent
+ROOT_PATH = Path(__file__).parent.parent.parent
 
 
 ENV_IS_TEST = os.environ.get("ENV", None) == "test"
@@ -60,7 +60,6 @@ class Settings(BaseSettings):
     CELERY_BACKEND: SecretStr = SecretStr("")
     CELERY_BROKER: SecretStr = SecretStr("")
 
-    DB_URL: PostgresDsn
 
     @property
     def is_local(self) -> bool:
