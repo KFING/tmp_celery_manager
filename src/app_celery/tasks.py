@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 
 import httpx
-from pydantic import HttpUrl
+from pydantic import HttpUrl, BaseModel
 
 from src.app_celery.main import app
 from src.db_main.cruds import tg_post_crud
@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 class InvalidDataException(Exception):
     pass
+
+class TmpListTgPost(BaseModel):
+    posts: list[TgPost]
 
 def heapify(arr: list[TgPost], n: int, i: int):
     largest = i # Initialize largest as root
@@ -55,12 +58,20 @@ def save_to_telegram_file(posts: list[TgPost]):
     heap_sort(posts)
     tmp_posts: list[TgPost] = []
     for post in posts:
-        tmp_post = tmp_posts[-1]
-        if len(tmp_list) == 0:
-            tmp_list.append(task)
+
+        if len(tmp_posts) == 0:
+            tmp_posts.append(post)
             continue
-        if
-        (SCRAPPER_TMP_MEDIA_DIR__TELEGRAM / task.tg_channel_id / f"{task.pb_date.year}" / f"{task.tg_channel_id}_{task.tg_post_id}__{task.pb_date.month}.json").write_text(task.model_dump_json(indent=4))
+        tmp_post = tmp_posts[-1]
+        if tmp_post.pb_date.month == post.pb_date.month:
+            tmp_posts.append(post)
+            continue
+        else:
+            # save
+            (SCRAPPER_TMP_MEDIA_DIR__TELEGRAM / tmp_post.tg_channel_id / f"{tmp_post.pb_date.year}").mkdir(parents=True, exist_ok=True)
+            (SCRAPPER_TMP_MEDIA_DIR__TELEGRAM / tmp_post.tg_channel_id / f"{tmp_post.pb_date.year}" / f"{tmp_post.tg_channel_id}_{tmp_post.tg_post_id}__{tmp_post.pb_date.month}.json").write_text(TmpListTgPost(posts=posts).model_dump_json(indent=4))
+            tmp_posts.clear()
+
 
 def parse_data(channel_name: str, posts: list[dict[str, str]], *, log_extra: dict[str, str]) -> list[TgPost | None]:
     tg_posts: list[TgPost] = []
