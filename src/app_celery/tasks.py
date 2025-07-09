@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from datetime import datetime
 
@@ -18,6 +19,19 @@ class InvalidDataException(Exception):
 
 class TmpListTgPost(BaseModel):
     posts: list[TgPost]
+
+def parse_data(channel_name: str, posts: list[dict[str, str]], *, log_extra: dict[str, str]) -> list[TgPost]:
+    tg_posts: list[TgPost] = []
+    try:
+        for post in posts:
+            tg_posts.append(TgPost(tg_channel_id=post['tg_channel_id'],
+                                    tg_post_id=int(post['tg_post_id']),
+                                    content=post['content'],
+                                    pb_date=datetime.fromisoformat(post['pb_date']),
+                                    link=HttpUrl(post['link'])))
+    except InvalidDataException as e:
+        logger.warning(f'CELERY WORKER :: invalid response data for channel -- {channel_name} -- {e}', extra=log_extra)
+    return tg_posts
 
 def heapify(arr: list[TgPost], n: int, i: int):
     largest = i # Initialize largest as root
@@ -54,37 +68,31 @@ def heap_sort(arr: list[TgPost]):
         arr[i], arr[0] = arr[0], arr[i]
         heapify(arr, i, 0)
 
-def save_to_telegram_file(posts: list[TgPost]):
+def save_to_telegram_file(posts: list[TgPost], *, log_extra: dict[str, str]) -> None:
     heap_sort(posts)
     tmp_posts: list[TgPost] = []
     for post in posts:
-
-        if len(tmp_posts) == 0:
+        try:
+            tmp_post = tmp_posts[-1]
+        except IndexError:
             tmp_posts.append(post)
             continue
-        tmp_post = tmp_posts[-1]
         if tmp_post.pb_date.month == post.pb_date.month:
             tmp_posts.append(post)
             continue
         else:
             # save
+            if (SCRAPPER_TMP_MEDIA_DIR__TELEGRAM / tmp_post.tg_channel_id / f"{tmp_post.pb_date.year}" / f"{tmp_post.tg_channel_id}_{tmp_post.tg_post_id}__{tmp_post.pb_date.month}.json").exists():
+                text = json.load((SCRAPPER_TMP_MEDIA_DIR__TELEGRAM / tmp_post.tg_channel_id / f"{tmp_post.pb_date.year}" / f"{tmp_post.tg_channel_id}_{tmp_post.tg_post_id}__{tmp_post.pb_date.month}.json").open())
+                text_posts = text["posts"]
+                if isinstance(text_posts, list):
+                    tmp_posts.insert(0, parse_data(tmp_post.tg_channel_id, text_posts, log_extra=log_extra))
             (SCRAPPER_TMP_MEDIA_DIR__TELEGRAM / tmp_post.tg_channel_id / f"{tmp_post.pb_date.year}").mkdir(parents=True, exist_ok=True)
             (SCRAPPER_TMP_MEDIA_DIR__TELEGRAM / tmp_post.tg_channel_id / f"{tmp_post.pb_date.year}" / f"{tmp_post.tg_channel_id}_{tmp_post.tg_post_id}__{tmp_post.pb_date.month}.json").write_text(TmpListTgPost(posts=posts).model_dump_json(indent=4))
             tmp_posts.clear()
 
 
-def parse_data(channel_name: str, posts: list[dict[str, str]], *, log_extra: dict[str, str]) -> list[TgPost | None]:
-    tg_posts: list[TgPost] = []
-    try:
-        for post in posts:
-            tg_posts.append(TgPost(tg_channel_id=post['tg_channel_id'],
-                                    tg_post_id=int(post['tg_post_id']),
-                                    content=post['content'],
-                                    pb_date=datetime.fromisoformat(post['pb_date']),
-                                    link=HttpUrl(post['link'])))
-    except InvalidDataException as e:
-        logger.warning(f'CELERY WORKER :: invalid response data for channel -- {channel_name} -- {e}', extra=log_extra)
-    return tg_posts
+
 
 @app.task(bind=True)
 def parse_api(self, task: TelegramTask, *, log_extra: dict[str, str]) -> None:
