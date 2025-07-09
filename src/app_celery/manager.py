@@ -38,12 +38,12 @@ def serialize_tg_task(channel_name: str) -> TelegramTask | None:
         logger.warning('Invalid TelegramTask parameters')
 
 
-def create_new_task(tsk: TelegramTask):
+def create_new_task(tsk: TelegramTask, *, log_extra: dict[str, str]):
 
     global running_tasks
     global running_channels
 
-    result = parse_api.delay(tsk.model_dump_json(indent=4))
+    result = parse_api.delay(tsk, log_extra=log_extra)
     running_tasks[result.id] = result
     running_channels[result.id] = tsk.channel_name
 
