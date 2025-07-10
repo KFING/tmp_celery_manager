@@ -8,7 +8,7 @@ from typing import Final
 from pydantic import PostgresDsn, SecretStr
 from pydantic_settings import BaseSettings
 
-ROOT_PATH = Path(__file__).parent.parent.parent
+ROOT_PATH = Path(__file__).parent.parent
 
 
 ENV_IS_TEST = os.environ.get("ENV", None) == "test"
@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     CELERY_BACKEND: SecretStr = SecretStr("")
     CELERY_BROKER: SecretStr = SecretStr("")
 
+    DB_URL: PostgresDsn
 
     @property
     def is_local(self) -> bool:
@@ -80,21 +81,11 @@ class Settings(BaseSettings):
 # TODO: replace with right app
 settings: Final = Settings(app=AppName.app_api)  # pyright: ignore
 
-SCRAPPER_TMP_MEDIA_DIR = settings.ROOT_PATH / ".tmp" / "media"
-
-SCRAPPER_TMP_MEDIA_DIR__YOUTUBE = settings.ROOT_PATH / ".var" / "data" / "youtube"
-SCRAPPER_TMP_MEDIA_DIR__INSTAGRAM = settings.ROOT_PATH / ".var" / "data" / "instagram"
-SCRAPPER_TMP_MEDIA_DIR__TELEGRAM = settings.ROOT_PATH / ".var" / "data" / "telegram"
-
 SCRAPPER_RESULTS_DIR = settings.ROOT_PATH / ".var" / "data"
 SCRAPPER_RESULTS_DIR__YOUTUBE = settings.ROOT_PATH / ".var" / "data" / "youtube"
 SCRAPPER_RESULTS_DIR__INSTAGRAM = settings.ROOT_PATH / ".var" / "data" / "instagram"
 SCRAPPER_RESULTS_DIR__TELEGRAM = settings.ROOT_PATH / ".var" / "data" / "telegram"
 
-SCRAPPER_TMP_MEDIA_DIR.mkdir(exist_ok=True, parents=True)
-SCRAPPER_TMP_MEDIA_DIR__YOUTUBE.mkdir(exist_ok=True, parents=True)
-SCRAPPER_TMP_MEDIA_DIR__INSTAGRAM.mkdir(exist_ok=True, parents=True)
-SCRAPPER_TMP_MEDIA_DIR__TELEGRAM.mkdir(exist_ok=True, parents=True)
 SCRAPPER_RESULTS_DIR__YOUTUBE.mkdir(exist_ok=True, parents=True)
 SCRAPPER_RESULTS_DIR__INSTAGRAM.mkdir(exist_ok=True, parents=True)
 SCRAPPER_RESULTS_DIR__TELEGRAM.mkdir(exist_ok=True, parents=True)

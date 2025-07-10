@@ -4,6 +4,7 @@ from datetime import datetime
 
 from redis import Redis
 
+from src.app_api.dependencies import get_db_main_manager
 from src.app_celery.main import app
 from celery.result import AsyncResult
 from src.app_celery.tasks import parse_api
@@ -38,12 +39,12 @@ def serialize_tg_task(channel_name: str) -> TelegramTask | None:
         logger.warning('Invalid TelegramTask parameters')
 
 
-def create_new_task(tsk: TelegramTask, *, log_extra: dict[str, str]):
+def create_new_task(tsk: TelegramTask):
 
     global running_tasks
     global running_channels
 
-    result = parse_api.delay(tsk, log_extra=log_extra)
+    result = parse_api.delay(tsk.channel_name, tsk.model_dump_json(indent=4))
     running_tasks[result.id] = result
     running_channels[result.id] = tsk.channel_name
 

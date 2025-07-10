@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
-from src.env import DB_URL
+from src.env import settings
 
 
 # Heavily inspired by https://praciano.com.br/fastapi-and-async-sqlalchemy-20-with-pytest-done-right.html
@@ -37,15 +37,15 @@ _db: DBM | None = None
 
 def get_db_main_manager(new_connection: bool = False) -> DBM:
     if new_connection:
-        return DBM(str(DB_URL))
+        return DBM(str(settings.DB_URL))
 
     global _db  # noqa: PLW0603
     if _db is None:
-        _db = DBM(str(DB_URL))
+        _db = DBM(str(settings.DB_URL))
     return _db
 
 
-async def get_db_main() -> AsyncIterator[AsyncSession]:
+async def get_db_main() -> AsyncSession:
     db = get_db_main_manager()
     async with db.session() as session:
-        yield session
+        return session
