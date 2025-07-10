@@ -76,7 +76,8 @@ def _save_to_file(tmp_post, tmp_posts):
         text = json.load((SCRAPPER_RESULTS_DIR__TELEGRAM / tmp_post.tg_channel_id / f"{tmp_post.pb_date.year}" / f"{tmp_post.tg_channel_id}__{tmp_post.pb_date.month}.json").open())
         text_posts = text["posts"]
         if isinstance(text_posts, list):
-            tmp_posts.insert(0, parse_data(tmp_post.tg_channel_id, text_posts))
+            for i, post in enumerate(parse_data(tmp_post.tg_channel_id, text_posts)):
+                tmp_posts.insert(i, post)
             tmp = "TMP"
     (SCRAPPER_RESULTS_DIR__TELEGRAM / tmp_post.tg_channel_id / f"{tmp_post.pb_date.year}").mkdir(parents=True, exist_ok=True)
     (SCRAPPER_RESULTS_DIR__TELEGRAM / tmp_post.tg_channel_id / f"{tmp_post.pb_date.year}" / f"{tmp}{tmp_post.tg_channel_id}__{tmp_post.pb_date.month}.json").write_text(
