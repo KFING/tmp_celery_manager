@@ -1,15 +1,10 @@
-import json
+from datetime import datetime, timezone
 
-from pydantic import BaseModel
+START_OF_EPOCH = datetime(2000, 1, 1, tzinfo=timezone.utc)
 
-from src.env import SCRAPPER_RESULTS_DIR__TELEGRAM, settings
+END_OF_EPOCH = datetime(2100, 1, 1, tzinfo=timezone.utc)
 
-class TgPos(BaseModel):
-    a: str
-
-class Poss(BaseModel):
-    poss: list[TgPos]
-
-al = [TgPos(a='a'), TgPos(a='b'), TgPos(a='c'), TgPos(a='d')]
-text = json.load((SCRAPPER_RESULTS_DIR__TELEGRAM / f"a" / f"b.json").open())
-print(type(text['poss'][0]))
+if START_OF_EPOCH > END_OF_EPOCH:
+    print('START_OF_EPOCH')
+else:
+    print('END_OF_EPOCH')

@@ -32,3 +32,19 @@ async def run_list(tasks: list[Coroutine[None, None, TR]], size: int) -> list[TR
         chunk = tasks[i * size : (i + 1) * size]
         results += list(await asyncio.gather(*chunk))
     return results
+
+_TP = ParamSpec("_TP")
+_TR = TypeVar("_TR")
+_T = TypeVar("_T")
+
+
+def run_on_loop(some: Coroutine[Any, Any, _TR]) -> _TR:
+    try:
+        loop = asyncio.get_event_loop()
+    except Exception:
+        loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(some)
+    except RuntimeError:
+        future = asyncio.run_coroutine_threadsafe(some, loop)
+        return future.result()

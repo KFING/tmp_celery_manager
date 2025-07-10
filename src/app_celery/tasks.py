@@ -8,6 +8,7 @@ from pydantic import HttpUrl, BaseModel
 
 from src.app_api.dependencies import get_db_main_manager, get_db_main
 from src.app_celery.main import app
+from src.common.async_utils import run_on_loop
 from src.db_main.cruds import tg_post_crud
 from src.dto.redis_task import TelegramTask
 from src.dto.tg_post import TgPost
@@ -116,12 +117,13 @@ def parse_api(self, channel_name, task) -> None:
         logger.debug(response.status_code)
         if response.status_code != 200:
             return
-    tg_posts = parse_data(channel_name, response.json())
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    db = loop.run_until_complete(get_db_main())
-    posts = loop.run_until_complete(tg_post_crud.create_tg_posts(db, tg_posts))
-    loop.close()
+    text = response.json()
+    if not isinstance(text, list):
+        logger.debug(f"noooooooooooooooooooooooooooooooooooo -- {text}")
+        return
+    tg_posts = parse_data(channel_name, text)
+    db = run_on_loop(get_db_main())
+    posts = run_on_loop(tg_post_crud.create_tg_posts(db, tg_posts))
     save_to_telegram_file(posts)
 
 

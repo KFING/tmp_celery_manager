@@ -29,11 +29,11 @@ def serialize_tg_task(channel_name: str) -> TelegramTask | None:
             return None
         tg_task = TelegramTask(
             channel_name=channel_name,
-            dt_to=datetime.fromisoformat(tsk[0].decode("utf-8")),
-            dt_from=datetime.fromisoformat(tsk[1].decode("utf-8")),
+            dt_from=datetime.fromisoformat(tsk[0].decode("utf-8")),
+            dt_to=datetime.fromisoformat(tsk[1].decode("utf-8")),
         )
-        rds.lrem(channel_name, 1, tsk[0])
         rds.lrem(channel_name, 1, tsk[1])
+        rds.lrem(channel_name, 1, tsk[0])
         return tg_task
     except InvalidTelegramTask:
         logger.warning('Invalid TelegramTask parameters')
