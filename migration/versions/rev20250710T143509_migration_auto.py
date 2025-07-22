@@ -1,7 +1,7 @@
 """migration_auto
 
 Revision ID: rev20250710T143509
-Revises: 
+Revises:
 Create Date: 2025-07-10 17:35:10.424846
 
 """
@@ -25,7 +25,7 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('post_id', sa.Integer(), nullable=False),
-    sa.Column('tg_channel_id', sa.String(), server_default='', nullable=False),
+    sa.Column('channel_tasks', sa.String(), server_default='', nullable=False),
     sa.Column('tg_pb_date', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('content', sa.String(), server_default='', nullable=False),
     sa.Column('link', sa.String(), server_default='', nullable=False),

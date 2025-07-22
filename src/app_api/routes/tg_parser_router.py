@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.app_api.dependencies import get_db_main
 from src.app_api.middlewares import get_log_extra
 from src.app_api.models.request_models.feed_rec_request_info import ParsingParametersApiMdl
-from src.dto.tg_post import TgPost
+from src.dto.post import Post
 from src.external_telegram import scrapy_manager
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ rds = Redis()
 @tg_parser_router.post("/start")
 async def start_parser(
     parsing_parameters: ParsingParametersApiMdl, log_extra: dict[str, str] = Depends(get_log_extra), db: AsyncSession = Depends(get_db_main)
-) -> list[TgPost] | None:
+) -> list[Post] | None:
     return await scrapy_manager.start_parsing(db, parsing_parameters, log_extra=log_extra)
 
 

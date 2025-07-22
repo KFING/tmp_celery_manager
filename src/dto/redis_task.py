@@ -5,10 +5,11 @@ from pydantic import BaseModel
 
 
 class RedisTask(Enum):
-    channel_name='channel_name',
+    channel_tasks= 'channel_tasks',
     counter_of_workers='cow'
 
-class TelegramTask(BaseModel):
+class Task(BaseModel):
+    source: str
     channel_name: str
     dt_to: datetime
     dt_from: datetime

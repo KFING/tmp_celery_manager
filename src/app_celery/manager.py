@@ -8,7 +8,7 @@ from src.app_api.dependencies import get_db_main_manager
 from src.app_celery.main import app
 from celery.result import AsyncResult
 from src.app_celery.tasks import parse_api
-from src.dto.redis_task import RedisTask, TelegramTask
+from src.dto.redis_task import RedisTask, Task
 
 rds = Redis()
 rds.set(str(RedisTask.counter_of_workers.value), 3)
@@ -22,24 +22,27 @@ logger = logging.getLogger(__name__)
 class InvalidTelegramTask(Exception):
     pass
 
-def serialize_tg_task(channel_name: str) -> TelegramTask | None:
+
+def serialize_channel_task(task_name: str) -> Task | None:
     try:
-        tsk = rds.lrange(channel_name, 0, 1)
+        tsk = rds.lrange(task_name, 0, 1)
         if len(tsk) < 2:
             return None
-        tg_task = TelegramTask(
+        source, channel_name = task_name.split('$', maxsplit=1)
+        tg_task = Task(
+            source=source,
             channel_name=channel_name,
             dt_from=datetime.fromisoformat(tsk[0].decode("utf-8")),
             dt_to=datetime.fromisoformat(tsk[1].decode("utf-8")),
         )
-        rds.lrem(channel_name, 1, tsk[1])
-        rds.lrem(channel_name, 1, tsk[0])
+        rds.lrem(task_name, 1, tsk[1])
+        rds.lrem(task_name, 1, tsk[0])
         return tg_task
     except InvalidTelegramTask:
-        logger.warning('Invalid TelegramTask parameters')
+        logger.warning('Invalid Task parameters')
 
 
-def create_new_task(tsk: TelegramTask):
+def running_new_task_worker(tsk: Task):
 
     global running_tasks
     global running_channels
@@ -49,6 +52,7 @@ def create_new_task(tsk: TelegramTask):
     running_channels[result.id] = tsk.channel_name
 
     return result
+
 
 @app.task
 def manager_task():
@@ -60,10 +64,10 @@ def manager_task():
         cow = int(cow_redis.decode("utf-8"))
     else:
         cow = 3
-    byte_channels = rds.smembers(str(RedisTask.channel_name.value))
-    if not byte_channels:
+    byte_tasks = rds.smembers(str(RedisTask.channel_tasks.value))
+    if not byte_tasks:
         return
-    channels = [channel.decode("utf-8") for channel in byte_channels]
+    tasks = [task.decode("utf-8") for task in byte_tasks]
     logger.debug(f"[{datetime.now()}] Manager is running")
 
     finished = [tid for tid, r in running_tasks.items() if AsyncResult(tid).ready()]
@@ -72,23 +76,23 @@ def manager_task():
         logger.debug(f"task finished {tid}")
         running_tasks.pop(tid)
         channel_name = running_channels.pop(tid)
-        tsk = serialize_tg_task(channel_name)
+        tsk = serialize_channel_task(channel_name)
         if not tsk:
-            return
-        result = create_new_task(tsk)
+            continue
+        result = running_new_task_worker(tsk)
         logger.debug(f"Running new task: {result.id} :: {channel_name}")
 
     for i in range(cow - len(running_tasks.items())):
         for item in running_channels.items():
-            if not str(item) in channels:
+            if not str(item) in tasks:
                 continue
-            channels.remove(str(item))
-        if not channels:
+            tasks.remove(str(item))
+        if not tasks:
             return
-        channel = channels.pop()
-        tsk = serialize_tg_task(channel)
+        task = tasks.pop()
+        tsk = serialize_channel_task(task)
         if not tsk:
             continue
-        result = create_new_task(tsk)
-        logger.debug(f"Running new task: {result.id} :: {channel}")
+        result = running_new_task_worker(tsk)
+        logger.debug(f"Running new task: {result.id} :: {task}")
 
